@@ -87326,8 +87326,15 @@ function bAA() {
         JF({ name: lg });
         try {
           let fI, ng, tI = null;
+          let curAcc = E;
+          if (!curAcc) {
+            curAcc = { userId: "player_local", name: lg || "Player", x: { id: "player_local", username: lg || "Player" }, characterChosen: true, access: { open: true } };
+            i(curAcc);
+          } else if (!curAcc.x) {
+            curAcc = { ...curAcc, x: { id: curAcc.userId || "player_local", username: lg || curAcc.name || "Player" } };
+            i(curAcc);
+          }
           if (bA === "online") {
-            if (!E) E = { userId: "player_1", name: lg || "Player", x: { id: "1" } }; if (!E.x) E.x = { id: "1", username: lg || "Player" };
             const Sg =
                 new URLSearchParams(location.search).get("join") ??
                 location.pathname.match(/\/join\/([\w-]+)/)?.[1];
@@ -87358,11 +87365,11 @@ function bAA() {
             token: ng,
             isHost: tI ? (tI.isHost ?? true) : true,
             allowlist:
-              bA === "online" || E?.allowlist ? (E?.allowlist ?? null) : null,
+              bA === "online" || curAcc?.allowlist ? (curAcc?.allowlist ?? null) : null,
             allowCard: {
               portrait:
                 TI.current?.key === JSON.stringify(Q) ? TI.current.url : null,
-              avatar: Ai(E?.avatarUrl ?? null),
+              avatar: Ai(curAcc?.avatarUrl ?? null),
               ticker: Rg.ticker,
             },
             duel: MI ? { code: MI } : null,
@@ -87628,11 +87635,25 @@ function bAA() {
                               onClick: async () => {
                                 const pName = (I.trim() || E?.name || "Player").slice(0, 15);
                                 C(pName);
-                                if (E) {
-                                  E.name = pName;
-                                  E.x = { id: "player_1", username: pName };
-                                  E.characterChosen = true;
-                                }
+                                try { localStorage.setItem("pa.player.name", pName); } catch {}
+                                const acc = E ? {
+                                  ...E,
+                                  name: pName,
+                                  handle: pName,
+                                  x: { ...(E.x || { id: "player_local" }), username: pName },
+                                  characterChosen: true
+                                } : {
+                                  id: "player_local",
+                                  userId: "player_local",
+                                  name: pName,
+                                  handle: pName,
+                                  x: { id: "player_local", username: pName },
+                                  characterChosen: true,
+                                  access: { open: true },
+                                  points: 2500,
+                                  kills: 12
+                                };
+                                i(acc);
                                 JF({ name: pName });
                                 await fetch("/api/character", {
                                   method: "PUT",
