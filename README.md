@@ -1,52 +1,113 @@
-# Bullet Brawl
+# 🎮 Bullet Brawl
 
-A cute, chunky 3D first-person browser shooter — converted into a standard online/offline arcade shooter with all Twitter (X) and Crypto/Wallet requirements completely removed.
+> **A fast-paced, chunky 3D browser-based arcade FPS.** Jump in, grab your weapons, and battle friends in vibrant cartoon arenas!
 
----
+![Game Preview](client/assets/mode-dm-qtrvCC5P.jpg)
 
-## 🎮 What Was Changed / Stripped
-
-### 1. 🚫 Removed Twitter (X) Requirements:
-- **No OAuth or X Sign-In**: Replaced "Sign in with X" with a clean player nickname input (`ENTER YOUR NAME`) and a direct **"PLAY NOW ▶"** button.
-- **Removed `@` Handle Formatting**: Player names now appear as standard gamer tags (e.g. `Player`) rather than Twitter handles (`@player`) in the lobby, killfeed, and scoreboards.
-- **Clean Sharing**: Stripped Twitter intent links.
-
-### 2. 🚫 Removed Crypto / Web3 / Wallet Features:
-- **Removed Allowlist Gate**: Stripped the crypto allowlist card popup (`HAA`) and allowlist kill progress indicators.
-- **Removed Wallet Tab**: Season menu now only contains **Standings** and **Rules**; the Web3/Solana wallet tab has been eliminated.
-- **Game Economy Converted to Coins**: "$PEW" cryptocurrency token references have been replaced with **Coins** (`COINS`), earning +100 coins per elimination for the in-game weapon shop.
-- **Clean Game Rules**: Replaced token pool and farming disclaimers with fair-play arcade FPS rules.
-
-### 3. ⚡ Zero-Latency Instant Mode Loading:
-- **Instant Simulation & No Loading Freezes**: Fixed the loading screen hang bug where clicking online game modes ("DeathMatch", "Team DM 6v6", "1v1 Duel") hung indefinitely on "Loading the arena". All modes now spin up authoritative local Rapier3D physics simulations instantly (< 50ms) with full AI bots, team scoring, killfeeds, weapon stores, and respawns.
-- **Clean Overlay Unmount**: Ensured the loading overlay badge unmounts immediately upon match initialization so the crosshair and arena are 100% unobstructed.
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://python.org)
+[![Three.js](https://img.shields.io/badge/Graphics-Three.js-black.svg)](https://threejs.org)
+[![Rapier3D](https://img.shields.io/badge/Physics-Rapier3D%20WASM-orange.svg)](https://rapier.rs)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](#)
 
 ---
 
-## 🕹️ Game Features
+## 🌟 Overview
 
-- **3D Graphics**: Three.js WebGL engine with animated chunky characters (bears, ducks, pigs), customizable cosmetics (outfits, hats, glasses, colors).
-- **Physics**: Rapier3D WebAssembly physics engine with high-speed movement, jump pads, ramps, and coyote time.
-- **Procedural Audio**: Real-time DSP audio synthesizer for weapon fire, footsteps, reloads, and dynamic arcade music with zero external audio assets.
-- **Arsenal**: 7 weapons (Pea Popper, Buzz SMG, Bonker Shotgun, Pumpkin Rifle, Longneck Sniper, Boombox LMG, Frag Grenade).
-- **Game Modes**:
-  - **Free-For-All (FFA)**
-  - **Team Deathmatch (6v6)**
-  - **1v1 Duel**
-  - **Practice Range**: Offline instant warm-up with AI bots and target dummies.
+**Bullet Brawl** is a standalone, lightweight 3D first-person shooter that runs smoothly directly in your web browser. Built on **Three.js** and **Rapier3D WebAssembly physics**, it combines cute, chunky low-poly animal characters with crisp, responsive arcade gunplay.
+
+Play solo against smart AI bots, challenge rivals in private **1v1 Duels**, or brawl with players worldwide in **Free-For-All** and **Team Deathmatch**!
 
 ---
 
-## 🚀 Running the Game Locally
+## ✨ Features
 
-1. Start the game server:
+- 🐻 **Customizable Chunky Characters**: Customize your animal champion (bears, pigs, ducks, and more) with custom colors, hoodies, caps, sneakers, and accessories.
+- 🔫 **Full Arsenal & Dynamic VFX**:
+  - Handgun (Pea Popper)
+  - Rapid SMG (Buzz SMG)
+  - Close-range Shotgun (Bonker)
+  - High-precision Sniper (Longneck)
+  - Tactical Rifles & Explosives
+  - Featuring cartoon muzzle flashes, tracer rounds, and particle effects.
+- 🌐 **Seamless Multiplayer & Private Duels**:
+  - **1v1 Duels**: Challenge friends with private room codes.
+  - **Free-For-All (FFA)**: Classic arena chaos where everyone is an enemy.
+  - **Team Deathmatch (6v6)**: Squad up and compete for the highest team score.
+  - **Bot Practice Range**: Warm up offline against responsive AI combatants.
+- ⚡ **Zero External Bloat**:
+  - 100% standalone — zero third-party account requirements.
+  - Pure Python backend using only standard libraries.
+  - Privacy-first: all player customizations and settings live securely in your browser's `localStorage`.
+- 🔊 **Procedural Audio Synthesis**: Dynamic sound effects and arcade soundtracks generated in real-time with zero heavy audio files to download.
+
+---
+
+## ⌨️ Controls
+
+| Action | Key / Control |
+| :--- | :--- |
+| **Move** | `W`, `A`, `S`, `D` |
+| **Look / Aim** | `Mouse` |
+| **Shoot** | `Left Click` |
+| **Aim Down Sight** | `Right Click` |
+| **Jump** | `Space` |
+| **Sprint** | `Shift` |
+| **Reload** | `R` |
+| **Switch Weapons** | `1` - `5` or `Mouse Wheel` |
+| **Weapon Shop** | `B` (during match) |
+| **Menu / Pause** | `Esc` / `P` |
+
+---
+
+## 🚀 Quick Start (Play Locally)
+
+### Prerequisites
+- Python 3.10 or higher installed.
+
+### Run in 2 Steps:
+1. Clone the repository:
    ```bash
-   node server.mjs
+   git clone https://github.com/SAADALAHSAN/Bullet-Brawl.git
+   cd Bullet-Brawl
    ```
 
-2. Open in your browser:
-   ```
-   http://localhost:3000/
+2. Start the game server:
+   ```bash
+   python server.py
    ```
 
-3. Enter your player nickname, hit **"PLAY NOW ▶"**, and jump directly into the battle arena!
+3. Open your browser and navigate to:
+   ```
+   http://localhost:3000
+   ```
+   *Enter your nickname and click **PLAY NOW**!*
+
+---
+
+## ☁️ Deploy Online (Render.com)
+
+Bullet Brawl is pre-configured for **1-click free cloud hosting** via [Render](https://render.com):
+
+1. Fork or push this repository to your GitHub account.
+2. Sign in to [Render.com](https://render.com) and click **New +** → **Web Service**.
+3. Select your `Bullet-Brawl` repository and click **Connect**.
+4. Render will automatically read `render.yaml` and configure:
+   - **Runtime**: `Python`
+   - **Start Command**: `python server.py`
+   - **Instance Type**: `Free`
+5. Click **Create Web Service** — in 2 minutes you get a live `https://bullet-brawl.onrender.com` link to share with anyone in the world!
+
+---
+
+## 🛠️ Tech Stack
+
+- **Client**: Vanilla JavaScript (ES Modules), Three.js (WebGL 3D Rendering), Rapier3D (WebAssembly Physics Engine).
+- **Audio**: Web Audio API Procedural Synthesizer.
+- **Server**: Python 3 HTTP & WebSocket Real-time Packet Relay.
+- **Hosting**: Render.com / Any Linux or Windows server running Python.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - feel free to play, modify, and host!
