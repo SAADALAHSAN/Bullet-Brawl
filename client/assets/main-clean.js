@@ -81849,6 +81849,23 @@ class lh {
     (this.frames++, (this.debugT += I));
     const Q = performance.now(),
       B = this.net;
+    if (!this.server && this.running && !this.paused) {
+      if (this.net.own.spawnSeq === 0) {
+        if (!this.spawnWaitStart) this.spawnWaitStart = performance.now();
+        if (performance.now() - this.spawnWaitStart > 4500) {
+          console.warn("[Multiplayer] Host did not spawn player within 4.5s. Falling back to fresh match!");
+          this.spawnWaitStart = null;
+          this.running = false;
+          this.opts.onExit("Host did not respond, starting your match...", {
+            fallbackHost: true,
+            mode: this.opts.gameMode || "ffa",
+          });
+          return;
+        }
+      } else {
+        this.spawnWaitStart = null;
+      }
+    }
     if ((B.update(C), this.watchLink(A), !this.running)) return;
     B.roster.size !== this.players.views.size + 1 &&
       this.players.sync(B.roster, B.you);
@@ -87434,10 +87451,24 @@ function bAA() {
   }, []);
   const YI = tA.useRef(() => {}),
     GA = tA.useCallback((bA, MI) => {
+      const leavingRoomId = lA.current?.opts?.roomId || pA.current?.roomId;
+      if (leavingRoomId) {
+        try {
+          fetch("/api/room/leave", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ roomId: leavingRoomId }),
+          }).catch(() => {});
+        } catch {}
+      }
       if (
         (lA.current?.dispose(), (lA.current = null), MI?.dropped && pA.current)
       ) {
         YI.current(bA ?? "Disconnected");
+        return;
+      }
+      if (MI?.fallbackHost) {
+        PA("online", void 0, { mode: MI.mode || "ffa", forceHost: !0 });
         return;
       }
       ((pA.current = null),
@@ -87494,7 +87525,8 @@ function bAA() {
             spec: Q,
             wsUrl: fI,
             token: ng,
-            isHost: tI ? (tI.isHost ?? true) : true,
+            roomId: tI?.roomId ?? null,
+            isHost: gA.forceHost ? true : (tI ? (tI.isHost ?? true) : true),
             allowlist:
               bA === "online" || curAcc?.allowlist ? (curAcc?.allowlist ?? null) : null,
             allowCard: {

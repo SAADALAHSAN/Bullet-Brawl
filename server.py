@@ -311,6 +311,7 @@ class ArenaRequestHandler(http.server.BaseHTTPRequestHandler):
                         opcode, payload = decode_ws_frame(self.rfile)
                         if opcode is None or opcode == 8:
                             break
+                        room["last_active"] = time.time()
                         if opcode == 9:
                             self.send_ws_bytes(payload, opcode=10)
                             continue
@@ -340,9 +341,17 @@ class ArenaRequestHandler(http.server.BaseHTTPRequestHandler):
                 finally:
                     print(f"[WS Room] Host disconnected from room {room_id}")
                     with rooms_lock:
+                        clients_to_close = []
                         if room_id in active_game_rooms and active_game_rooms[room_id].get("host") == self:
-                            active_game_rooms[room_id]["host"] = None
-                            active_game_rooms[room_id]["host_lost_at"] = time.time()
+                            room = active_game_rooms.pop(room_id, None)
+                            if room:
+                                clients_to_close = list(room.get("clients", {}).values())
+                    for ch in clients_to_close:
+                        try:
+                            ch.wfile.write(encode_ws_frame(b"", opcode=8))
+                            ch.wfile.flush()
+                        except:
+                            pass
 
             elif role == "client":
                 host_handler = None
@@ -374,6 +383,7 @@ class ArenaRequestHandler(http.server.BaseHTTPRequestHandler):
                         opcode, payload = decode_ws_frame(self.rfile)
                         if opcode is None or opcode == 8:
                             break
+                        room["last_active"] = time.time()
                         if opcode == 9:
                             self.send_ws_bytes(payload, opcode=10)
                             continue
@@ -793,45 +803,74 @@ class ArenaRequestHandler(http.server.BaseHTTPRequestHandler):
                 self.send_json({"ok": True, "message": msg})
                 return
 
+            if pathname == "/api/room/leave":
+                rid = parsed.get("roomId")
+                with rooms_lock:
+                    clients_to_close = []
+                    if rid and rid in active_game_rooms:
+                        room = active_game_rooms.pop(rid, None)
+                        if room:
+                            clients_to_close = list(room.get("clients", {}).values())
+                for ch in clients_to_close:
+                    try:
+                        ch.wfile.write(encode_ws_frame(b"", opcode=8))
+                        ch.wfile.flush()
+                    except:
+                        pass
+                self.send_json({"ok": True})
+                return
+
             if pathname == "/api/matchmake":
                 mode = parsed.get("mode", "ffa")
                 duel = parsed.get("duel")
                 req_room = parsed.get("roomId")
+                force_host = parsed.get("forceHost", False)
                 host_header = self.headers.get("Host", f"localhost:{PORT}")
 
                 with rooms_lock:
                     now = time.time()
                     stale_rooms = [rid for rid, rdata in active_game_rooms.items()
-                                   if rdata.get("host") is None and now - rdata.get("created_at", 0) > 300]
+                                   if rdata.get("host") is None or (now - rdata.get("last_active", rdata.get("created_at", 0)) > 60)]
                     for rid in stale_rooms:
                         active_game_rooms.pop(rid, None)
 
                     if req_room and req_room in active_game_rooms:
                         rdata = active_game_rooms[req_room]
-                        if rdata.get("host") is not None:
+                        if rdata.get("host") is not None and not force_host:
                             room_id = req_room
                             is_host = False
                         else:
-                            # Reconnecting host into existing room
                             room_id = req_room
                             is_host = True
                     elif req_room:
-                        # Reconnecting player for cleaned up room: resurrect room with this player as host
                         room_id = req_room
                         is_host = True
                         active_game_rooms[room_id] = {
                             "host": None,
                             "clients": {},
                             "mode": mode,
-                            "created_at": time.time()
+                            "created_at": time.time(),
+                            "last_active": time.time()
                         }
                     elif duel:
                         room_id = f"duel_{duel}"
                         is_host = (room_id not in active_game_rooms) or (active_game_rooms[room_id].get("host") is None)
+                    elif force_host:
+                        room_id = f"{mode}_{int(time.time()*1000)}"
+                        is_host = True
+                        active_game_rooms[room_id] = {
+                            "host": None,
+                            "clients": {},
+                            "mode": mode,
+                            "created_at": time.time(),
+                            "last_active": time.time()
+                        }
                     else:
                         room_id = None
                         for rid, rdata in active_game_rooms.items():
-                            if rdata["mode"] == mode and rdata.get("host") is not None and len(rdata.get("clients", {})) < 12:
+                            # Only join as client if host is ACTIVELY alive within the last 4.0 seconds
+                            is_alive = rdata.get("host") is not None and (now - rdata.get("last_active", 0) < 4.0)
+                            if rdata["mode"] == mode and is_alive and len(rdata.get("clients", {})) < 12:
                                 room_id = rid
                                 break
                         if not room_id:
@@ -841,7 +880,8 @@ class ArenaRequestHandler(http.server.BaseHTTPRequestHandler):
                                 "host": None,
                                 "clients": {},
                                 "mode": mode,
-                                "created_at": time.time()
+                                "created_at": time.time(),
+                                "last_active": time.time()
                             }
                         else:
                             is_host = False
