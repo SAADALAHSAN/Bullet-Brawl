@@ -79974,28 +79974,32 @@ class c$ {
       (C.addEventListener(Q, B, E), this.handlers.push([C, Q, B]));
     };
     (I(document, "pointerlockchange", () => {
-      ((this.locked = document.pointerLockElement === this.el),
-        this.locked || this.down.clear());
+      this.locked = !!document.pointerLockElement && (document.pointerLockElement === this.el || document.pointerLockElement === document.body);
     }),
       I(document, "mousemove", (C) => {
-        if (!this.locked || !this.enabled) return;
+        if (!this.enabled) return;
+        const isLocked = this.locked || !!document.pointerLockElement;
+        if (!isLocked && !(C.buttons & 1)) return;
         const Q = C,
-          B = eg.sensitivity * 0.022 * qg * this.sensMult;
-        ((this.yaw -= Q.movementX * B),
-          (this.pitch -= Q.movementY * B * (eg.invertY ? -1 : 1)),
+          B = eg.sensitivity * 0.022 * qg * this.sensMult,
+          dx = Q.movementX || 0,
+          dy = Q.movementY || 0;
+        ((this.yaw -= dx * B),
+          (this.pitch -= dy * B * (eg.invertY ? -1 : 1)),
           (this.pitch = kg(this.pitch, -89 * qg, 89 * qg)),
-          (this.lookDX += Q.movementX),
-          (this.lookDY += Q.movementY));
+          (this.lookDX += dx),
+          (this.lookDY += dy));
       }),
       I(document, "mousedown", (C) => {
-        this.locked && this.press(`Mouse${C.button}`);
+        !this.locked && this.lock();
+        this.press(`Mouse${C.button}`);
       }),
       I(document, "mouseup", (C) => this.release(`Mouse${C.button}`)),
       I(
         document,
         "wheel",
         (C) => {
-          this.locked && (this.latched |= C.deltaY > 0 ? PI.next : PI.prev);
+          this.latched |= C.deltaY > 0 ? PI.next : PI.prev;
         },
         { passive: !0 },
       ),
@@ -80004,7 +80008,7 @@ class c$ {
         ((Q.code === "Tab" ||
           Q.code === "F3" ||
           Q.code === "F4" ||
-          (this.locked && Q.code === "Space")) &&
+          Q.code === "Space") &&
           Q.preventDefault(),
           !Q.repeat && this.press(Q.code));
       }),
@@ -80115,15 +80119,29 @@ class c$ {
     );
   }
   lock() {
-    if (document.pointerLockElement === this.el) return;
-    const A = this.el.requestPointerLock({ unadjustedMovement: !0 });
-    A &&
-      typeof A.catch == "function" &&
-      A.catch(() => {
-        try {
-          this.el.requestPointerLock();
-        } catch {}
-      });
+    try {
+      if (document.pointerLockElement) {
+        this.locked = !0;
+        return;
+      }
+      const el = this.el || document.body;
+      const res = el.requestPointerLock ? el.requestPointerLock() : null;
+      if (res && typeof res.then === "function") {
+        res
+          .then(() => {
+            this.locked = !0;
+          })
+          .catch(() => {
+            try {
+              document.body.requestPointerLock();
+            } catch {}
+          });
+      }
+    } catch {
+      try {
+        document.body.requestPointerLock();
+      } catch {}
+    }
   }
   unlock() {
     document.pointerLockElement && document.exitPointerLock();
@@ -80775,6 +80793,12 @@ class lh {
       this.hud.root
         .querySelector(".hud-prompt")
         .addEventListener("click", () => this.resume()),
+      this.renderer.domElement.addEventListener("click", () => {
+        (this.paused || !this.input.locked) && this.resume();
+      }),
+      this.container.addEventListener("click", () => {
+        (this.paused || !this.input.locked) && this.resume();
+      }),
       document.addEventListener("pointerlockchange", this.onLockChange));
     try {
       (this.renderer.compile(this.scene, this.camera),
@@ -80997,21 +81021,16 @@ class lh {
   };
   onLockChange = () => {
     if (this.touch) return;
-    const A = document.pointerLockElement === this.renderer.domElement;
-    (this.hud.setPrompt(!A && !this.paused && !this.cardOpen),
-      !A &&
-        this.running &&
-        !this.paused &&
-        !this.shopOpen &&
-        !this.cardOpen &&
-        ((this.paused = !0), this.opts.onPause(!0)));
+    const A = !!(document.pointerLockElement && (document.pointerLockElement === this.renderer.domElement || document.pointerLockElement === document.body));
+    ((this.input.locked = A),
+      this.hud.setPrompt(!A && !this.cardOpen && !this.shopOpen));
   };
   resume() {
     if (
       ((this.paused = !1),
       this.opts.onPause(!1),
       this.hud.setPrompt(!1),
-      this.audio.unlock().then(() => this.applyVolumes()),
+      this.audio.unlock().then(() => this.applyVolumes()).catch(() => {}),
       this.touch)
     ) {
       ((this.touchActive = !0), this.touch.setVisible(!0));
@@ -81679,7 +81698,7 @@ class lh {
     B.roster.size !== this.players.views.size + 1 &&
       this.players.sync(B.roster, B.you);
     const E = this.input;
-    ((E.enabled = (this.input.locked || this.touchActive) && !this.paused),
+    ((E.enabled = !this.paused),
       (this.acc += C));
     let i = 0;
     for (; this.acc >= Tg.dt && i < 6;) {
