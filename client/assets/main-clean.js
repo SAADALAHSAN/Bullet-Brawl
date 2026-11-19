@@ -79410,7 +79410,8 @@ const X2 = "pa.settings.v1",
     invertY: !1,
     fov: _2 ? wp.fovMobile : wp.fovDesktop,
     quality: "high",
-    timeOfDay: "day",
+    timeOfDay: "random",
+    lobbyTheme: "day",
     renderScale: 1,
     fpsCap: 0,
     outlines: !0,
@@ -79436,7 +79437,8 @@ function h$() {
     if (g) {
       const A = { ...cL, ...JSON.parse(g) };
       if (!A.quality || A.quality === "auto") A.quality = "high";
-      if (!A.timeOfDay || A.timeOfDay === "random") A.timeOfDay = "day";
+      if (!A.timeOfDay) A.timeOfDay = "random";
+      if (!A.lobbyTheme) A.lobbyTheme = "day";
       return (
         (!A.touchLayout || typeof A.touchLayout != "object") &&
           (A.touchLayout = {}),
@@ -80795,7 +80797,16 @@ class lh {
       (this.renderer.shadowMap.type = Os),
       (this.renderer.domElement.className = "game-canvas"),
       A.appendChild(this.renderer.domElement));
-    const isNight = eg.timeOfDay === "night";
+    const isNight = (() => {
+      if (eg.timeOfDay === "night") return true;
+      if (eg.timeOfDay === "day") return false;
+      if (I.duel?.code) {
+        let h = 0;
+        for (let idx = 0; idx < I.duel.code.length; idx++) h = (h * 31 + I.duel.code.charCodeAt(idx)) & 0xffff;
+        return h % 2 === 1;
+      }
+      return Math.random() < 0.5;
+    })();
     this.isNight = isNight;
     const B = (isNight ? new v(-25, 48, 20) : new v(-30, 48, 24)).normalize(),
       E = isNight ? new FD(0x405578, 0x1c2430, 1.25) : new FD(16054527, 14207136, 1.6),
@@ -82590,8 +82601,8 @@ const P$ = (g) => Go("POST", "/party/invite", { userId: g }),
   AAA = (g) => No("/access/wallet", { address: g }),
   IAA = () => RD("/allowlist/card");
 function gAA({ spec: g, squad: A = [], active: I = !0 }) {
-  const [curTheme, setCurTheme] = tA.useState(eg.timeOfDay || "day");
-  tA.useEffect(() => z2((s) => setCurTheme(s.timeOfDay || "day")), []);
+  const [curTheme, setCurTheme] = tA.useState(eg.lobbyTheme || "day");
+  tA.useEffect(() => z2((s) => setCurTheme(s.lobbyTheme || "day")), []);
   const C = tA.useRef(null),
     Q = tA.useRef(null),
     B = JSON.stringify([g, A, curTheme]);
@@ -82916,10 +82927,10 @@ function oAA(g) {
     E = A?.allowlist,
     i = A?.x && typeof E?.pew == "number" ? E.pew : null,
     [o, t] = tA.useState(!1),
-    [localTheme, setLocalTheme] = tA.useState(eg.timeOfDay || "day"),
+    [localTheme, setLocalTheme] = tA.useState(eg.lobbyTheme || "day"),
     D = !!g.online,
     a = g.invites[0];
-  tA.useEffect(() => z2((s) => setLocalTheme(s.timeOfDay || "day")), []);
+  tA.useEffect(() => z2((s) => setLocalTheme(s.lobbyTheme || "day")), []);
   return G.jsxs(
     hg.div,
     {
@@ -83127,10 +83138,10 @@ function oAA(g) {
                 "glass glass-pill glass-btn flex h-12 items-center gap-2 px-4 text-[15px] font-black cursor-pointer select-none transition-transform hover:scale-105 active:scale-95",
               onClick: () => {
                 const next = localTheme === "night" ? "day" : "night";
-                JF({ timeOfDay: next });
+                JF({ lobbyTheme: next });
                 setLocalTheme(next);
               },
-              title: "Toggle Day / Night",
+              title: "Toggle Lobby Day / Night",
               children: [
                 localTheme === "night" ? "🌙 Night" : "☀️ Day",
               ],
@@ -85927,14 +85938,15 @@ function yAA({ onClose: g }) {
                 }),
               }),
               G.jsx(yQ, {
-                label: "Time of day (map)",
+                label: "Match time of day",
                 children: G.jsxs("select", {
-                  value: A.timeOfDay || "day",
+                  value: A.timeOfDay || "random",
                   onChange: (t) => E("timeOfDay", t.target.value),
                   className: "field px-2 py-1",
                   children: [
-                    G.jsx("option", { value: "day", children: "Day ☀️ (Default)" }),
-                    G.jsx("option", { value: "night", children: "Night 🌙" }),
+                    G.jsx("option", { value: "random", children: "Random (Default)" }),
+                    G.jsx("option", { value: "day", children: "Always Day ☀️" }),
+                    G.jsx("option", { value: "night", children: "Always Night 🌙" }),
                   ],
                 }),
               }),
