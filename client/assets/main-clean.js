@@ -75114,26 +75114,39 @@ normal = normalize( vNormal );`,
 }
 const $6 =
     "varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }",
-  A7 = `uniform vec3 top, horizon, sunCol; uniform vec3 sunDir; varying vec3 vP;
+  A7 = `uniform vec3 top, horizon, sunCol; uniform vec3 sunDir; uniform float isNight; varying vec3 vP;
 void main(){
   float h = vP.y;
   float t = pow(smoothstep(0.0, 0.42, h), 0.7);
   vec3 c = mix(horizon, top, t);
   float s = max(dot(normalize(vP), sunDir), 0.0);
-  c += sunCol * (pow(s, 24.0) * 0.35 + pow(s, 400.0) * 1.5);
+  if (isNight > 0.5) {
+    c += sunCol * (pow(s, 32.0) * 0.45 + pow(s, 500.0) * 2.5);
+    if (vP.y > 0.02) {
+      vec3 p = normalize(vP) * 150.0;
+      float star = fract(sin(dot(floor(p), vec3(27.1, 61.7, 12.4))) * 43758.5453);
+      if (star > 0.982) {
+        float b = pow((star - 0.982) / 0.018, 2.0);
+        c += vec3(0.85, 0.92, 1.0) * b * smoothstep(0.02, 0.18, vP.y);
+      }
+    }
+  } else {
+    c += sunCol * (pow(s, 24.0) * 0.35 + pow(s, 400.0) * 1.5);
+  }
   gl_FragColor = vec4(c, 1.);
   #include <colorspace_fragment>
 }`;
-function mY(g) {
+function mY(g, isNight = !1) {
   return new xi({
     side: FQ,
     depthWrite: !1,
     fog: !1,
     uniforms: {
-      top: { value: new xI(qA.skyTop) },
-      horizon: { value: new xI(qA.skyHorizon) },
-      sunCol: { value: new xI(16773840) },
+      top: { value: new xI(isNight ? 0x060919 : qA.skyTop) },
+      horizon: { value: new xI(isNight ? 0x182440 : qA.skyHorizon) },
+      sunCol: { value: new xI(isNight ? 0x9ec7f5 : 16773840) },
       sunDir: { value: g.clone().normalize() },
+      isNight: { value: isNight ? 1.0 : 0.0 },
     },
     vertexShader: $6,
     fragmentShader: A7,
@@ -75188,20 +75201,37 @@ function I7(g) {
   }
   return Mo(A, !1);
 }
-function W2(g, A, I) {
-  const C = new Jg(new DQ(450, 32, 16), mY(I));
+function W2(g, A, I, isNight = !1) {
+  const C = new Jg(new DQ(450, 32, 16), mY(I, isNight));
   ((C.renderOrder = -10), (C.frustumCulled = !1), g.add(C));
-  const Q = new Jg(I7(zQ(42)), new yE({ vertexColors: !0, fog: !1 }));
+  const Q = new Jg(
+    I7(zQ(42)),
+    new yE({
+      vertexColors: !0,
+      color: isNight ? new xI(0x283854) : new xI(0xffffff),
+      fog: !1,
+      transparent: isNight,
+      opacity: isNight ? 0.75 : 1.0,
+    }),
+  );
   ((Q.frustumCulled = !1), (Q.renderOrder = -9), g.add(Q));
   const B = new Ge();
-  B.add(new Jg(new DQ(50, 32, 16), mY(I)));
-  const E = new yE({ color: iC(qA.grass, qA.grassLight, 0.4), side: FQ }),
+  B.add(new Jg(new DQ(50, 32, 16), mY(I, isNight)));
+  const E = new yE({
+    color: isNight ? 0x0f1820 : iC(qA.grass, qA.grassLight, 0.4),
+    side: FQ,
+  }),
     i = new Jg(
       new DQ(49, 32, 8, 0, Math.PI * 2, Math.PI / 2 + 0.02, Math.PI / 2),
       E,
     );
   B.add(i);
-  const o = new Jg(new DQ(4, 12, 8), new yE({ color: new xI(6, 5.6, 4.8) }));
+  const o = new Jg(
+    new DQ(4, 12, 8),
+    new yE({
+      color: isNight ? new xI(2.8, 3.4, 4.5) : new xI(6, 5.6, 4.8),
+    }),
+  );
   (o.position.copy(I).normalize().multiplyScalar(40), B.add(o));
   const t = new mh(A),
     D = t.fromScene(B, 0.01, 0.1, 100).texture;
@@ -75210,6 +75240,7 @@ function W2(g, A, I) {
     {
       envMap: D,
       sunDir: I,
+      isNight: isNight,
       update(a) {
         Q.rotation.y = a * 0.002;
       },
@@ -76408,6 +76439,7 @@ class a7 {
       Q = new ke(16773336, 2.3);
     (Q.position.set(-0.8, 1.3, 0.35),
       this.scene.add(C, Q, Q.target),
+      (this.lights = { hemi: C, dir: Q }),
       this.showWeapon(mA.Rifle));
     this.flash = new kd(
       new Pk({
@@ -76423,6 +76455,22 @@ class a7 {
   }
   setEnvironment(A) {
     this.scene.environment = A;
+  }
+  setNight(A) {
+    if (!this.lights) return;
+    if (A) {
+      this.lights.hemi.color.setHex(0x405578);
+      this.lights.hemi.groundColor.setHex(0x1c2430);
+      this.lights.hemi.intensity = 1.35;
+      this.lights.dir.color.setHex(0x9cc3f8);
+      this.lights.dir.intensity = 1.65;
+    } else {
+      this.lights.hemi.color.setHex(16054527);
+      this.lights.hemi.groundColor.setHex(14207136);
+      this.lights.hemi.intensity = 1.6;
+      this.lights.dir.color.setHex(16773336);
+      this.lights.dir.intensity = 2.3;
+    }
   }
   setColors(A, I) {
     this.hands.setColors(A, I);
@@ -79351,6 +79399,7 @@ const X2 = "pa.settings.v1",
     invertY: !1,
     fov: _2 ? wp.fovMobile : wp.fovDesktop,
     quality: "high",
+    timeOfDay: "random",
     renderScale: 1,
     fpsCap: 0,
     outlines: !0,
@@ -79376,6 +79425,7 @@ function h$() {
     if (g) {
       const A = { ...cL, ...JSON.parse(g) };
       if (!A.quality || A.quality === "auto") A.quality = "high";
+      if (!A.timeOfDay) A.timeOfDay = "random";
       return (
         (!A.touchLayout || typeof A.touchLayout != "object") &&
           (A.touchLayout = {}),
@@ -80734,9 +80784,20 @@ class lh {
       (this.renderer.shadowMap.type = Os),
       (this.renderer.domElement.className = "game-canvas"),
       A.appendChild(this.renderer.domElement));
-    const B = new v(-30, 48, 24).normalize(),
-      E = new FD(16054527, 14207136, 1.6),
-      i = new ke(16773336, 2.35);
+    const isNight = (() => {
+      if (eg.timeOfDay === "night") return true;
+      if (eg.timeOfDay === "day") return false;
+      if (I.duel?.code) {
+        let h = 0;
+        for (let idx = 0; idx < I.duel.code.length; idx++) h = (h * 31 + I.duel.code.charCodeAt(idx)) & 0xffff;
+        return h % 2 === 1;
+      }
+      return Math.random() < 0.5;
+    })();
+    this.isNight = isNight;
+    const B = (isNight ? new v(-25, 48, 20) : new v(-30, 48, 24)).normalize(),
+      E = isNight ? new FD(0x405578, 0x1c2430, 1.25) : new FD(16054527, 14207136, 1.6),
+      i = isNight ? new ke(0x9cc3f8, 1.65) : new ke(16773336, 2.35);
     (i.position.copy(B).multiplyScalar(60), i.target.position.set(0, 0, 0));
     const o = Q !== "low";
     if (o) {
@@ -80757,8 +80818,8 @@ class lh {
         (i.shadow.radius = 3));
     }
     (this.scene.add(E, i, i.target),
-      (this.scene.fog = new fw(11460607, 22, 175)),
-      (this.env = W2(this.scene, this.renderer, B)),
+      (this.scene.fog = new fw(isNight ? 0x121b2c : 11460607, 22, 175)),
+      (this.env = W2(this.scene, this.renderer, B, isNight)),
       (this.map = O2(li, {
         shadows: o,
         envMap: this.env.envMap,
@@ -80793,16 +80854,17 @@ class lh {
       this.scene.add(this.camera),
       (this.vm = new a7(I.spec.colors.body, I.spec.colors.secondary)),
       this.vm.setEnvironment(this.env.envMap),
+      this.vm.setNight(isNight),
       (this.vm.onReloadCue = (n, r) => this.audio.reload(n, Eg(r).key)),
       (this.hud = new S$(A)),
       this.hud.setMode(
-        (I.gameMode === "tdm" || I.mode === "tdm")
+        ((I.gameMode === "tdm" || I.mode === "tdm")
           ? "Team Deathmatch · 6v6 Red vs Blue"
           : (I.gameMode === "duel" || I.duel)
             ? "1v1 Duel · first to 5 kills"
             : (I.mode === "practice" || I.gameMode === "practice")
               ? "Practice range · offline · F3 stats · F4 network sim"
-              : "DeathMatch · free-for-all"
+              : "DeathMatch · free-for-all") + (isNight ? " · 🌙 Night" : " · ☀️ Day")
       ),
       (this.allowlist = I.allowlist ?? null),
       I.duel &&
@@ -82554,12 +82616,13 @@ function gAA({ spec: g, squad: A = [], active: I = !0 }) {
         i.remove();
         return;
       }
+      const isLobbyNight = eg.timeOfDay === "night" || (eg.timeOfDay === "random" && (new Date().getHours() >= 18 || new Date().getHours() < 6));
       const t = OU() === "low",
         D = new Ge();
-      D.fog = new fw(11460607, 22, 175);
-      const a = new v(-30, 48, 24).normalize();
-      D.add(new FD(16054527, 14207136, 1.6));
-      const h = new ke(16773336, 2.35);
+      D.fog = new fw(isLobbyNight ? 0x121b2c : 11460607, 22, 175);
+      const a = (isLobbyNight ? new v(-25, 48, 20) : new v(-30, 48, 24)).normalize();
+      D.add(isLobbyNight ? new FD(0x405578, 0x1c2430, 1.25) : new FD(16054527, 14207136, 1.6));
+      const h = isLobbyNight ? new ke(0x9cc3f8, 1.65) : new ke(16773336, 2.35);
       (h.position.copy(a).multiplyScalar(60),
         (h.castShadow = !t),
         h.shadow.mapSize.set(2048, 2048),
@@ -82577,7 +82640,7 @@ function gAA({ spec: g, squad: A = [], active: I = !0 }) {
         (h.shadow.normalBias = 0.06),
         (h.shadow.radius = 3),
         D.add(h, h.target));
-      const n = W2(D, o, a),
+      const n = W2(D, o, a, isLobbyNight),
         r = O2(li, { shadows: !t, envMap: n.envMap, sunDir: a, lowDetail: t });
       D.add(r.group);
       const c = new uQ(36, 1, 0.05, 900),
@@ -85841,6 +85904,19 @@ function yAA({ onClose: g }) {
                     G.jsx("option", { value: "high", children: "High (Recommended)" }),
                     G.jsx("option", { value: "medium", children: "Medium" }),
                     G.jsx("option", { value: "low", children: "Low" }),
+                  ],
+                }),
+              }),
+              G.jsx(yQ, {
+                label: "Time of day (map)",
+                children: G.jsxs("select", {
+                  value: A.timeOfDay || "random",
+                  onChange: (t) => E("timeOfDay", t.target.value),
+                  className: "field px-2 py-1",
+                  children: [
+                    G.jsx("option", { value: "random", children: "Random (Day / Night)" }),
+                    G.jsx("option", { value: "day", children: "Always Day ☀️" }),
+                    G.jsx("option", { value: "night", children: "Always Night 🌙" }),
                   ],
                 }),
               }),
