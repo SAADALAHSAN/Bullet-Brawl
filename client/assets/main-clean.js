@@ -76396,6 +76396,8 @@ class a7 {
   ro = za();
   hidden = !1;
   adsOffset = new Map();
+  flash;
+  flashT = 0;
   constructor(A, I) {
     (this.scene.add(this.rig),
       this.rig.add(this.gunPivot),
@@ -76407,6 +76409,17 @@ class a7 {
     (Q.position.set(-0.8, 1.3, 0.35),
       this.scene.add(C, Q, Q.target),
       this.showWeapon(mA.Rifle));
+    this.flash = new kd(
+      new Pk({
+        map: w6(),
+        transparent: !0,
+        depthTest: !1,
+        depthWrite: !1,
+        color: 16777215,
+      }),
+    );
+    this.flash.visible = !1;
+    this.flash.renderOrder = 999;
   }
   setEnvironment(A) {
     this.scene.environment = A;
@@ -76432,6 +76445,7 @@ class a7 {
     return I;
   }
   showWeapon(A) {
+    if (this.flash) this.flash.visible = !1;
     for (const [C, Q] of this.models) Q.root.visible = C === A;
     const I = this.model(A);
     ((I.root.visible = !0),
@@ -76444,6 +76458,7 @@ class a7 {
     this.reload.onCue = A ? (I) => A(I, this.displayed) : null;
   }
   swapTo(A) {
+    if (this.flash) this.flash.visible = !1;
     (A === this.target && this.swapT < 0) ||
       ((this.target = A), (this.swapT = 0));
   }
@@ -76453,10 +76468,27 @@ class a7 {
       this.showWeapon(A),
       this.reload.cancel());
   }
+  triggerFlash(A) {
+    if (!A || A.id === mA.Grenade) return;
+    const I = this.model(this.displayed);
+    if (!I || !I.muzzle || !this.flash) return;
+    if (this.flash.parent !== I.muzzle) {
+      I.muzzle.add(this.flash);
+    }
+    this.flash.position.set(0, 0, -0.04);
+    this.flash.material.color.setHex(A.color ?? 16773336);
+    this.flash.material.rotation = Math.random() * Math.PI;
+    const s = (A.id === mA.Shotgun || A.id === mA.Sniper) ? 0.28 : 0.18;
+    this.flash.scale.set(s, s, s);
+    this.flash.material.opacity = 0.95;
+    this.flash.visible = !0;
+    this.flashT = 0.045;
+  }
   fire(A) {
     ((this.kickDef = A),
       (this.kick = Math.min(1.6, this.kick + 1)),
       (this.kickPitch = Math.min(1.6, this.kickPitch + 1)));
+    this.triggerFlash(A);
   }
   shell() {
     this.shellT = 0;
@@ -76471,6 +76503,14 @@ class a7 {
       : A.set(0.2, -0.15, -0.9);
   }
   update(A, I) {
+    if (this.flashT > 0) {
+      this.flashT -= A;
+      if (this.flashT <= 0 || !I.alive) {
+        this.flash.visible = !1;
+      } else {
+        this.flash.material.opacity = (this.flashT / 0.045) * 0.95;
+      }
+    }
     this.swapT >= 0
       ? ((this.swapT += A),
         this.swapT >= Be &&
@@ -81327,11 +81367,12 @@ class lh {
     const D = new v(o.x, o.y, o.z - 0.08)
       .applyQuaternion(this.camera.quaternion)
       .add(this.camera.position);
-    this.vfx.muzzleFlash(
-      D,
-      Q.color,
-      Q.id === mA.Shotgun || Q.id === mA.Sniper ? 0.38 : 0.28,
-    );
+    (this.vfx.light.position.copy(D),
+      this.vfx.light.color.setHex(Q.color),
+      (this.vfx.light.intensity = 2.5),
+      (this.vfx.light.distance = 5),
+      (this.vfx.lightT = 0.03));
+    this.vm.triggerFlash(Q);
     const a = Q.tracerEvery <= 1 || A.combat.shotSeq % Q.tracerEvery === 0;
     for (let h = 0; h < i; h++) {
       const n = this.dirs[h],
