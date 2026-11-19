@@ -75426,16 +75426,16 @@ class i7 {
       Q.s.position.copy(A),
       Q.s.material.color.setHex(I),
       (Q.s.material.rotation = this.rng() * Math.PI),
-      Q.s.scale.setScalar(C),
-      (Q.s.material.opacity = 1.0),
+      Q.s.scale.setScalar(C * 0.3),
+      (Q.s.material.opacity = 0.75),
       (Q.t = 0),
-      (Q.life = 0.06),
+      (Q.life = 0.035),
       (Q.s.visible = !0),
       this.light.position.copy(A),
       this.light.color.setHex(I),
-      (this.light.intensity = 6),
-      (this.light.distance = 7),
-      (this.lightT = 0.04));
+      (this.light.intensity = 1.8),
+      (this.light.distance = 3.5),
+      (this.lightT = 0.025));
   }
   puff(A, I = 0.35, C = 16774368, Q = 0.42) {
     const B = this.puffs[this.puffNext];
@@ -75471,16 +75471,16 @@ class i7 {
   tuftBurst(A, I, C = 3) {
     for (let Q = 0; Q < C; Q++)
       (ri.set(
-        (this.rng() - 0.5) * 1.2,
-        0.5 + this.rng() * 0.8,
-        (this.rng() - 0.5) * 1.2,
+        (this.rng() - 0.5) * 0.9,
+        0.3 + this.rng() * 0.5,
+        (this.rng() - 0.5) * 0.9,
       ),
         this.tufts.spawn(
           A,
           ri,
           I[Q % I.length],
-          0.18 + this.rng() * 0.1,
-          0.25 + this.rng() * 0.1,
+          0.1 + this.rng() * 0.06,
+          0.18 + this.rng() * 0.08,
           8,
           1.8,
         ));
@@ -79991,6 +79991,9 @@ class c$ {
           (this.lookDY += dy));
       }),
       I(document, "mousedown", (C) => {
+        if (!this.enabled) return;
+        const target = C.target;
+        if (target && target.closest && target.closest("button, .card, .sticker, [role='dialog'], .hud-prompt, input, select")) return;
         !this.locked && this.lock();
         this.press(`Mouse${C.button}`);
       }),
@@ -80794,10 +80797,7 @@ class lh {
         .querySelector(".hud-prompt")
         .addEventListener("click", () => this.resume()),
       this.renderer.domElement.addEventListener("click", () => {
-        (this.paused || !this.input.locked) && this.resume();
-      }),
-      this.container.addEventListener("click", () => {
-        (this.paused || !this.input.locked) && this.resume();
+        if (!this.paused && !this.input.locked) this.resume();
       }),
       document.addEventListener("pointerlockchange", this.onLockChange));
     try {
