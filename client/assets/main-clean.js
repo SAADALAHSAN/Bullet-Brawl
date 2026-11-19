@@ -16044,7 +16044,7 @@ const b3 = {
   bs = {
     gameName: "Bullet Brawl",
     mapName: "Crate Cove",
-    tagline: "Jump in. Shoot friends. Get points.",
+    tagline: "Jump in. Shoot friends.",
   };
 function zM(g) {
   const A = Object.values(g).filter((C) => typeof C == "number");
@@ -87280,8 +87280,19 @@ function bAA() {
         } else if (lg) {
           C(lg.name);
         }
-        a([{ id: "local", name: "Local", pingUrl: "/api/ping" }]);
-        n("local");
+        const srv = { id: "global", name: "Official Server (Global)", ping: 35, pingUrl: "/api/ping" };
+        a([srv]);
+        n("global");
+        (async () => {
+          try {
+            const t0 = performance.now();
+            const res = await fetch("/api/ping");
+            if (res.ok) {
+              const p = Math.max(12, Math.round(performance.now() - t0));
+              a([{ ...srv, ping: p }]);
+            }
+          } catch {}
+        })();
       } catch (err) {
         console.error("Init error:", err);
       }

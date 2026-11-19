@@ -368,12 +368,16 @@ class ArenaRequestHandler(http.server.BaseHTTPRequestHandler):
                       self.headers.get("X-Forwarded-Port") == "443")
             ws_protocol = "wss" if is_ssl else "ws"
 
+            if pathname == "/api/ping":
+                self.send_json({"ok": True, "pong": int(time.time() * 1000)})
+                return
+
             if pathname == "/api/regions":
                 self.send_json([
                     {
-                        "id": "local",
-                        "name": "Bullet Brawl Online",
-                        "pingUrl": f"{ws_protocol}://{host}/ping",
+                        "id": "global",
+                        "name": "Official Server (Global)",
+                        "pingUrl": "/api/ping",
                         "online": True,
                     }
                 ])
