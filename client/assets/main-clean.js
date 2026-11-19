@@ -73205,17 +73205,41 @@ class J6 {
   bytesIn = 0;
   bytesOut = 0;
   ws;
+  keepaliveTimer = null;
   constructor(A) {
     ((this.ws = new WebSocket(A)),
       (this.ws.binaryType = "arraybuffer"),
-      (this.ws.onopen = () => this.onopen?.()),
+      (this.ws.onopen = () => {
+        this.onopen?.();
+        this.startKeepalive();
+      }),
       (this.ws.onmessage = (I) => {
         const C = new Uint8Array(I.data);
-        ((this.bytesIn += C.byteLength), this.onmessage?.(C));
+        this.bytesIn += C.byteLength;
+        if (C.length === 1 && C[0] === 0) return;
+        this.onmessage?.(C);
       }),
-      (this.ws.onclose = (I) =>
-        this.onclose?.(I.reason || `closed (${I.code})`)),
+      (this.ws.onclose = (I) => {
+        this.stopKeepalive();
+        this.onclose?.(I.reason || `closed (${I.code})`);
+      }),
       (this.ws.onerror = () => {}));
+  }
+  startKeepalive() {
+    this.stopKeepalive();
+    this.keepaliveTimer = setInterval(() => {
+      if (this.isOpen) {
+        try {
+          this.ws.send(new Uint8Array([0]));
+        } catch {}
+      }
+    }, 10000);
+  }
+  stopKeepalive() {
+    if (this.keepaliveTimer) {
+      clearInterval(this.keepaliveTimer);
+      this.keepaliveTimer = null;
+    }
   }
   get isOpen() {
     return this.ws.readyState === WebSocket.OPEN;
@@ -73225,6 +73249,7 @@ class J6 {
       ((this.bytesOut += A.byteLength), this.ws.send(A));
   }
   close() {
+    this.stopKeepalive();
     this.ws.close();
   }
 }
@@ -81004,7 +81029,13 @@ class lh {
               remoteClients.delete(cid);
             }
           };
+          const hostPingInterval = setInterval(() => {
+            if (hostWs.readyState === WebSocket.OPEN) {
+              try { hostWs.send(new Uint8Array([0, 0])); } catch {}
+            }
+          }, 10000);
           hostWs.onclose = () => {
+            clearInterval(hostPingInterval);
             for (const rem of remoteClients.values()) rem.onClose();
             remoteClients.clear();
           };
@@ -81243,14 +81274,15 @@ class lh {
       });
   }
   watchLink(A) {
+    if (this.server) return;
     if (this.opts.mode !== "online" || !this.net.connected) return;
     const I = this.transport.bytesIn;
     (I !== this.rxBytes || document.hidden) &&
       ((this.rxBytes = I), (this.rxAt = A));
     const C = A - this.rxAt;
-    (this.hud.setNetLost(C > 2500 ? C : null),
-      C > 12e3 &&
-        ((this.rxAt = A), this.drop("No data from the server for 12 s")));
+    (this.hud.setNetLost(C > 6000 ? C : null),
+      C > 25e3 &&
+        ((this.rxAt = A), this.drop("No data from the server for 25 s")));
   }
   setNetSim(A) {
     Object.assign(this.sim.settings, A);
@@ -87449,13 +87481,10 @@ function bAA() {
               );
             ((fI = tI.wsUrl),
               (ng = tI.joinToken),
-              (pA.current =
-                MI || tI.mode === "duel"
-                  ? null
-                  : {
-                      mode: tI.mode === "tdm" ? "tdm" : "ffa",
-                      roomId: tI.roomId,
-                    }));
+              (pA.current = {
+                mode: tI.mode === "tdm" ? "tdm" : tI.mode === "duel" ? "duel" : "ffa",
+                roomId: tI.roomId,
+              }));
           } else pA.current = null;
           MI && (NL(), m(null), QA(MI));
           const xA = await lh.create(LA.current, {

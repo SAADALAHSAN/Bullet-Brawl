@@ -75,6 +75,52 @@ in_memory_friends_db = {
 def load_friends_db():
     return in_memory_friends_db
 
+
+def ws_keepalive_loop():
+    while True:
+        time.sleep(15)
+        try:
+            now = time.time()
+            with rooms_lock:
+                rooms_snapshot = list(active_game_rooms.items())
+                dead_rooms = []
+                for rid, r in rooms_snapshot:
+                    lost_at = r.get("host_lost_at")
+                    # If host has been disconnected for more than 15s, clean up room and notify clients
+                    if lost_at and (now - lost_at > 15):
+                        dead_rooms.append((rid, list(r.get("clients", {}).values())))
+                for rid, _ in dead_rooms:
+                    active_game_rooms.pop(rid, None)
+
+            for _, clients_to_close in dead_rooms:
+                for ch in clients_to_close:
+                    try:
+                        ch.wfile.write(encode_ws_frame(b"", opcode=8))
+                        ch.wfile.flush()
+                    except:
+                        pass
+
+            # Send ping (opcode 9) to all connected hosts and clients to prevent proxy idle timeouts
+            with rooms_lock:
+                current_rooms = list(active_game_rooms.values())
+            for r in current_rooms:
+                h = r.get("host")
+                if h:
+                    try:
+                        h.send_ws_bytes(b"", opcode=9)
+                    except:
+                        pass
+                for ch in list(r.get("clients", {}).values()):
+                    try:
+                        ch.send_ws_bytes(b"", opcode=9)
+                    except:
+                        pass
+        except Exception:
+            pass
+
+keepalive_thread = threading.Thread(target=ws_keepalive_loop, daemon=True)
+keepalive_thread.start()
+
 def save_friends_db(data):
     # Keep memory lightweight & bounded:
     # Cap messages to last 20 messages per conversation
@@ -255,6 +301,7 @@ class ArenaRequestHandler(http.server.BaseHTTPRequestHandler):
                         }
                     else:
                         active_game_rooms[room_id]["host"] = self
+                        active_game_rooms[room_id].pop("host_lost_at", None)
                     room = active_game_rooms[room_id]
 
                 print(f"[WS Room] Host connected to room {room_id}")
@@ -264,9 +311,17 @@ class ArenaRequestHandler(http.server.BaseHTTPRequestHandler):
                         opcode, payload = decode_ws_frame(self.rfile)
                         if opcode is None or opcode == 8:
                             break
+                        if opcode == 9:
+                            self.send_ws_bytes(payload, opcode=10)
+                            continue
+                        elif opcode == 10:
+                            continue
                         if opcode in (1, 2) and len(payload) >= 2:
                             cmd = payload[0]
                             id_len = payload[1]
+                            if cmd == 0 and id_len == 0:
+                                # Host heartbeat keepalive
+                                continue
                             if len(payload) >= 2 + id_len:
                                 target_cid = payload[2:2+id_len].decode("utf-8", errors="ignore")
                                 packet = payload[2+id_len:]
@@ -285,21 +340,13 @@ class ArenaRequestHandler(http.server.BaseHTTPRequestHandler):
                 finally:
                     print(f"[WS Room] Host disconnected from room {room_id}")
                     with rooms_lock:
-                        clients_to_close = []
                         if room_id in active_game_rooms and active_game_rooms[room_id].get("host") == self:
                             active_game_rooms[room_id]["host"] = None
-                            clients_to_close = list(room["clients"].values())
-                            active_game_rooms.pop(room_id, None)
-                    for ch in clients_to_close:
-                        try:
-                            ch.wfile.write(encode_ws_frame(b"", opcode=8))
-                            ch.wfile.flush()
-                        except:
-                            pass
+                            active_game_rooms[room_id]["host_lost_at"] = time.time()
 
             elif role == "client":
                 host_handler = None
-                for _ in range(60):
+                for _ in range(120):  # Wait up to 12s for host to connect
                     with rooms_lock:
                         room = active_game_rooms.get(room_id)
                         if room and room.get("host"):
@@ -327,7 +374,16 @@ class ArenaRequestHandler(http.server.BaseHTTPRequestHandler):
                         opcode, payload = decode_ws_frame(self.rfile)
                         if opcode is None or opcode == 8:
                             break
+                        if opcode == 9:
+                            self.send_ws_bytes(payload, opcode=10)
+                            continue
+                        elif opcode == 10:
+                            continue
                         if opcode in (1, 2):
+                            if len(payload) == 1 and payload[0] == 0:
+                                # Client heartbeat keepalive
+                                self.send_ws_bytes(b"\x00", opcode=2)
+                                continue
                             fwd = bytes([2, len(cid_bytes)]) + cid_bytes + payload
                             with rooms_lock:
                                 current_host = room.get("host")
@@ -740,16 +796,36 @@ class ArenaRequestHandler(http.server.BaseHTTPRequestHandler):
             if pathname == "/api/matchmake":
                 mode = parsed.get("mode", "ffa")
                 duel = parsed.get("duel")
+                req_room = parsed.get("roomId")
                 host_header = self.headers.get("Host", f"localhost:{PORT}")
 
                 with rooms_lock:
                     now = time.time()
                     stale_rooms = [rid for rid, rdata in active_game_rooms.items()
-                                   if rdata.get("host") is None and now - rdata.get("created_at", 0) > 900]
+                                   if rdata.get("host") is None and now - rdata.get("created_at", 0) > 300]
                     for rid in stale_rooms:
                         active_game_rooms.pop(rid, None)
 
-                    if duel:
+                    if req_room and req_room in active_game_rooms:
+                        rdata = active_game_rooms[req_room]
+                        if rdata.get("host") is not None:
+                            room_id = req_room
+                            is_host = False
+                        else:
+                            # Reconnecting host into existing room
+                            room_id = req_room
+                            is_host = True
+                    elif req_room:
+                        # Reconnecting player for cleaned up room: resurrect room with this player as host
+                        room_id = req_room
+                        is_host = True
+                        active_game_rooms[room_id] = {
+                            "host": None,
+                            "clients": {},
+                            "mode": mode,
+                            "created_at": time.time()
+                        }
+                    elif duel:
                         room_id = f"duel_{duel}"
                         is_host = (room_id not in active_game_rooms) or (active_game_rooms[room_id].get("host") is None)
                     else:
