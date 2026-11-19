@@ -79811,7 +79811,7 @@ class S$ {
       Q.innerHTML = `<div class="dc-title">${A.won ? "YOU WIN" : "YOU LOSE"}</div>
         <div class="dc-score">${B}</div>
         <div class="dc-sub">${C ? `vs ${sE(C.name)}` : ""}${A.theirVote && !A.myVote ? " · they want a rematch!" : A.myVote ? " · waiting for their answer…" : ""}</div>
-        <div class="dc-btns"><button data-a="rematch" class="dc-btn gold"${A.myVote ? " disabled" : ""}>${A.myVote ? "Rematch asked" : "Rematch"}</button><button data-a="share" class="dc-btn sky">Post on X</button><button data-a="leave" class="dc-btn tomato">Leave</button></div>`;
+        <div class="dc-btns"><button data-a="rematch" class="dc-btn gold"${A.myVote ? " disabled" : ""}>${A.myVote ? "Rematch asked" : "Rematch"}</button><button data-a="leave" class="dc-btn tomato">Leave</button></div>`;
     } else ((Q.className = "hud-duelcard"), (Q.innerHTML = ""));
     for (const B of Q.querySelectorAll("button"))
       B.addEventListener("pointerdown", (E) => {
@@ -81491,17 +81491,7 @@ class lh {
           (this.duelN.votes = [...(this.duelN.votes ?? []), this.net.you]));
       return;
     }
-    if (I?.state === "end" && I.them) {
-      const C = I.won
-        ? `Just beat ${I.them.name} ${I.me.kills}–${I.them.kills} in a 1v1 on Bullet Brawl 🔫 Who's next?`
-        : `Lost ${I.me.kills}–${I.them.kills} to ${I.them.name} in a 1v1 on Bullet Brawl. Rematch is coming.`;
-      window.open(
-        `https://x.com/intent/post?text=${encodeURIComponent(C)}&url=${encodeURIComponent(this.duelLink())}`,
-        "_blank",
-        "noopener",
-      );
-    } else
-      navigator.clipboard?.writeText(this.duelLink()).then(
+    navigator.clipboard?.writeText(this.duelLink()).then(
         () => this.hud.banner_("LINK COPIED", "send it to your opponent", 1200),
         () =>
           this.hud.banner_(
@@ -87171,26 +87161,8 @@ ${c}`,
             G.jsxs("div", {
               className: "alcard-btns",
               children: [
-                G.jsxs("button", {
-                  className: "btn btn-gold btn-xl alcard-quote",
-                  disabled: !C,
-                  onClick: l,
-                  children: [
-                    G.jsx("svg", {
-                      width: "26",
-                      height: "26",
-                      viewBox: "0 0 24 24",
-                      fill: "currentColor",
-                      "aria-hidden": !0,
-                      children: G.jsx("path", {
-                        d: "M17.8 3h3.1l-6.8 7.8L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.3-8.3L1.9 3h6.4l4.4 5.8L17.8 3zm-1.1 16.2h1.7L7.4 4.7H5.6l11.1 14.5z",
-                      }),
-                    }),
-                    "Quote on X",
-                  ],
-                }),
                 G.jsx("button", {
-                  className: "btn btn-cream",
+                  className: "btn btn-cream btn-xl",
                   disabled: !C,
                   onClick: k,
                   children: "Save image",
