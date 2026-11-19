@@ -75333,11 +75333,13 @@ class i7 {
         new Pk({
           map: I.starburst,
           transparent: !0,
+          depthTest: !1,
           depthWrite: !1,
           color: 16777215,
         }),
       );
       ((t.visible = !1),
+        (t.renderOrder = 999),
         this.group.add(t),
         this.flashes.push({ s: t, t: 1, life: 1, grow: 0, vy: 0 }));
     }
@@ -75420,22 +75422,22 @@ class i7 {
       Q.mesh.material.color.setHex(C),
       (Q.mesh.visible = !0));
   }
-  muzzleFlash(A, I, C = 0.55) {
+  muzzleFlash(A, I, C = 0.28) {
     const Q = this.flashes[this.flashNext];
     ((this.flashNext = (this.flashNext + 1) % this.flashes.length),
       Q.s.position.copy(A),
       Q.s.material.color.setHex(I),
       (Q.s.material.rotation = this.rng() * Math.PI),
-      Q.s.scale.setScalar(C * 0.3),
-      (Q.s.material.opacity = 0.75),
+      Q.s.scale.setScalar(C),
+      (Q.s.material.opacity = 0.9),
       (Q.t = 0),
-      (Q.life = 0.035),
+      (Q.life = 0.05),
       (Q.s.visible = !0),
       this.light.position.copy(A),
       this.light.color.setHex(I),
-      (this.light.intensity = 1.8),
-      (this.light.distance = 3.5),
-      (this.lightT = 0.025));
+      (this.light.intensity = 2.5),
+      (this.light.distance = 5),
+      (this.lightT = 0.03));
   }
   puff(A, I = 0.35, C = 16774368, Q = 0.42) {
     const B = this.puffs[this.puffNext];
@@ -81321,19 +81323,14 @@ class lh {
         A.combat.shotSeq,
         A.crouched,
       ),
-      o = this.vm.muzzleView(BQ),
-      t = o.length();
-    ua.copy(o).project(this.vm.camera);
-    const D = new v(ua.x, ua.y, 0.5)
-      .unproject(this.camera)
-      .sub(this.camera.position)
-      .normalize()
-      .multiplyScalar(t * 0.9)
+      o = this.vm.muzzleView(BQ);
+    const D = new v(o.x, o.y, o.z - 0.08)
+      .applyQuaternion(this.camera.quaternion)
       .add(this.camera.position);
     this.vfx.muzzleFlash(
       D,
       Q.color,
-      Q.id === mA.Shotgun || Q.id === mA.Sniper ? 0.65 : 0.45,
+      Q.id === mA.Shotgun || Q.id === mA.Sniper ? 0.38 : 0.28,
     );
     const a = Q.tracerEvery <= 1 || A.combat.shotSeq % Q.tracerEvery === 0;
     for (let h = 0; h < i; h++) {
