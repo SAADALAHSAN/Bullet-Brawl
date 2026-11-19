@@ -168,6 +168,13 @@ class ArenaRequestHandler(http.server.BaseHTTPRequestHandler):
         self.ws_send_lock = threading.Lock()
         super().__init__(*args, **kwargs)
 
+    def setup(self):
+        super().setup()
+        try:
+            self.connection.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        except:
+            pass
+
     def log_message(self, format, *args):
         pass
 
@@ -291,16 +298,18 @@ class ArenaRequestHandler(http.server.BaseHTTPRequestHandler):
                             pass
 
             elif role == "client":
-                with rooms_lock:
-                    room = active_game_rooms.get(room_id)
-                    if room and room.get("host"):
-                        room["clients"][client_id] = self
-                        host_handler = room["host"]
-                    else:
-                        host_handler = None
+                host_handler = None
+                for _ in range(60):
+                    with rooms_lock:
+                        room = active_game_rooms.get(room_id)
+                        if room and room.get("host"):
+                            room["clients"][client_id] = self
+                            host_handler = room["host"]
+                            break
+                    time.sleep(0.1)
 
                 if not host_handler:
-                    print(f"[WS Room] Client {client_id} rejected: no host in room {room_id}")
+                    print(f"[WS Room] Client {client_id} rejected: host timed out in room {room_id}")
                     try:
                         self.wfile.write(encode_ws_frame(b"", opcode=8))
                         self.wfile.flush()
@@ -752,6 +761,12 @@ class ArenaRequestHandler(http.server.BaseHTTPRequestHandler):
                         if not room_id:
                             room_id = f"{mode}_{int(time.time()*1000)}"
                             is_host = True
+                            active_game_rooms[room_id] = {
+                                "host": None,
+                                "clients": {},
+                                "mode": mode,
+                                "created_at": time.time()
+                            }
                         else:
                             is_host = False
 

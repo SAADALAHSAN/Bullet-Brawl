@@ -75252,6 +75252,15 @@ function W2(g, A, I, isNight = !1) {
       envMap: D,
       sunDir: I,
       isNight: isNight,
+      setNight(isNightVal) {
+        C.material.uniforms.top.value.setHex(isNightVal ? 0x060919 : qA.skyTop);
+        C.material.uniforms.horizon.value.setHex(isNightVal ? 0x182440 : qA.skyHorizon);
+        C.material.uniforms.sunCol.value.setHex(isNightVal ? 0x9ec7f5 : 16773840);
+        C.material.uniforms.isNight.value = isNightVal ? 1.0 : 0.0;
+        Q.material.color.setHex(isNightVal ? 0x283854 : 0xffffff);
+        Q.material.transparent = isNightVal;
+        Q.material.opacity = isNightVal ? 0.75 : 1.0;
+      },
       update(a) {
         Q.rotation.y = a * 0.002;
       },
@@ -79557,6 +79566,7 @@ class S$ {
       (this.reloadFill = iI("i", "", this.reloadBar)),
       (this.session = iI("div", "hud-panel hud-session", this.root)),
       (this.modeTag = iI("div", "hud-mode", this.root)),
+      (this.modeTag.style.display = "none"),
       (this.feed = iI("div", "hud-feed", this.root)),
       (this.allow = iI("div", "hud-allow", this.root)),
       (this.allow.style.display = "none"),
@@ -79664,7 +79674,7 @@ class S$ {
     }
   }
   setMode(A) {
-    kB(this.modeTag, A);
+    if (this.modeTag) this.modeTag.style.display = "none";
   }
   setPrompt(A) {
     this.prompt.style.display = A ? "flex" : "none";
@@ -82636,7 +82646,8 @@ function gAA({ spec: g, squad: A = [], active: I = !0 }) {
         D = new Ge();
       D.fog = new fw(isLobbyNight ? 0x121b2c : 11460607, 22, 175);
       const a = (isLobbyNight ? new v(-25, 48, 20) : new v(-30, 48, 24)).normalize();
-      D.add(isLobbyNight ? new FD(0x405578, 0x1c2430, 1.25) : new FD(16054527, 14207136, 1.6));
+      const hemi = isLobbyNight ? new FD(0x405578, 0x1c2430, 1.25) : new FD(16054527, 14207136, 1.6);
+      D.add(hemi);
       const h = isLobbyNight ? new ke(0x9cc3f8, 1.65) : new ke(16773336, 2.35);
       (h.position.copy(a).multiplyScalar(60),
         (h.castShadow = !t),
@@ -82756,6 +82767,16 @@ function gAA({ spec: g, squad: A = [], active: I = !0 }) {
         setActive: (IA) => {
           p = IA;
         },
+        setTheme: (theme) => {
+          const isN = theme === "night";
+          n.setNight?.(isN);
+          D.fog.color.setHex(isN ? 0x121b2c : 11460607);
+          hemi.color.setHex(isN ? 0x405578 : 16054527);
+          hemi.groundColor.setHex(isN ? 0x1c2430 : 14207136);
+          hemi.intensity = isN ? 1.25 : 1.6;
+          h.color.setHex(isN ? 0x9cc3f8 : 16773336);
+          h.intensity = isN ? 1.65 : 2.35;
+        },
       }),
         N(g, A),
         J(0));
@@ -82774,6 +82795,9 @@ function gAA({ spec: g, squad: A = [], active: I = !0 }) {
     tA.useEffect(() => {
       Q.current?.setCast(g, A);
     }, [B]),
+    tA.useEffect(() => {
+      Q.current?.setTheme(curTheme);
+    }, [curTheme]),
     tA.useEffect(() => {
       Q.current?.setActive(I);
     }, [I]),
