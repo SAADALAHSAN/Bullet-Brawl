@@ -79350,7 +79350,7 @@ const X2 = "pa.settings.v1",
     adsSensitivity: 0.8,
     invertY: !1,
     fov: _2 ? wp.fovMobile : wp.fovDesktop,
-    quality: "auto",
+    quality: "high",
     renderScale: 1,
     fpsCap: 0,
     outlines: !0,
@@ -79375,6 +79375,7 @@ function h$() {
     const g = localStorage.getItem(X2);
     if (g) {
       const A = { ...cL, ...JSON.parse(g) };
+      if (!A.quality || A.quality === "auto") A.quality = "high";
       return (
         (!A.touchLayout || typeof A.touchLayout != "object") &&
           (A.touchLayout = {}),
@@ -79400,12 +79401,8 @@ function n$(g) {
   return (360 / (g * 0.022) / 800) * 2.54;
 }
 function OU() {
-  if (eg.quality !== "auto") return eg.quality;
-  if (!_2) return "high";
-  const g = typeof navigator < "u" ? navigator : null,
-    A = g?.hardwareConcurrency ?? 4,
-    I = g?.deviceMemory ?? 4;
-  return A >= 6 && I >= 4 ? "medium" : "low";
+  if (eg.quality && eg.quality !== "auto") return eg.quality;
+  return "high";
 }
 const iI = (g, A, I, C) => {
   const Q = document.createElement(g);
@@ -82090,31 +82087,7 @@ class lh {
   lowT = 0;
   highT = 0;
   adaptResolution() {
-    if (eg.quality !== "auto" || this.paused || !this.running) return;
-    this.fps < 42
-      ? ((this.lowT += 0.25), (this.highT = 0))
-      : this.fps > 57
-        ? ((this.highT += 0.25), (this.lowT = 0))
-        : (this.lowT = this.highT = 0);
-    let A = this.dynScale;
-    if (
-      (this.lowT >= 2.5
-        ? (A = Math.max(0.6, this.dynScale - 0.1))
-        : this.highT >= 8 && (A = Math.min(1, this.dynScale + 0.05)),
-      A !== this.dynScale)
-    ) {
-      ((this.dynScale = A), (this.lowT = this.highT = 0));
-      const I = this.quality;
-      (this.renderer.setPixelRatio(
-        Math.min(
-          window.devicePixelRatio,
-          I === "high" ? 2 : I === "medium" ? 1.5 : 1,
-        ) *
-          eg.renderScale *
-          A,
-      ),
-        this.onResize());
-    }
+    return;
   }
   surfaces = null;
   surfaceUnder(A, I, C) {
@@ -85861,14 +85834,13 @@ function yAA({ onClose: g }) {
               G.jsx(yQ, {
                 label: "Quality (applies on next match)",
                 children: G.jsxs("select", {
-                  value: A.quality,
+                  value: A.quality === "auto" ? "high" : A.quality,
                   onChange: (t) => E("quality", t.target.value),
                   className: "field px-2 py-1",
                   children: [
-                    G.jsx("option", { value: "auto", children: "Auto" }),
-                    G.jsx("option", { value: "low", children: "Low" }),
+                    G.jsx("option", { value: "high", children: "High (Recommended)" }),
                     G.jsx("option", { value: "medium", children: "Medium" }),
-                    G.jsx("option", { value: "high", children: "High" }),
+                    G.jsx("option", { value: "low", children: "Low" }),
                   ],
                 }),
               }),
