@@ -76413,7 +76413,7 @@ class a7 {
       new Pk({
         map: w6(),
         transparent: !0,
-        depthTest: !1,
+        depthTest: !0,
         depthWrite: !1,
         color: 16777215,
       }),
@@ -76468,14 +76468,17 @@ class a7 {
       this.showWeapon(A),
       this.reload.cancel());
   }
-  triggerFlash(A) {
-    if (!A || A.id === mA.Grenade) return;
+  triggerFlash(A, ads = !1) {
+    if (!A || A.id === mA.Grenade || ads || this.adsK > 0.15) {
+      if (this.flash) this.flash.visible = !1;
+      return;
+    }
     const I = this.model(this.displayed);
     if (!I || !I.muzzle || !this.flash) return;
     if (this.flash.parent !== I.muzzle) {
       I.muzzle.add(this.flash);
     }
-    this.flash.position.set(0, 0, -0.04);
+    this.flash.position.set(0, 0, -0.06);
     this.flash.material.color.setHex(A.color ?? 16773336);
     this.flash.material.rotation = Math.random() * Math.PI;
     const s = (A.id === mA.Shotgun || A.id === mA.Sniper) ? 0.28 : 0.18;
@@ -76505,7 +76508,7 @@ class a7 {
   update(A, I) {
     if (this.flashT > 0) {
       this.flashT -= A;
-      if (this.flashT <= 0 || !I.alive) {
+      if (this.flashT <= 0 || !I.alive || this.adsK > 0.15) {
         this.flash.visible = !1;
       } else {
         this.flash.material.opacity = (this.flashT / 0.045) * 0.95;
@@ -81372,7 +81375,7 @@ class lh {
       (this.vfx.light.intensity = 2.5),
       (this.vfx.light.distance = 5),
       (this.vfx.lightT = 0.03));
-    this.vm.triggerFlash(Q);
+    this.vm.triggerFlash(Q, !!A.combat.ads);
     const a = Q.tracerEvery <= 1 || A.combat.shotSeq % Q.tracerEvery === 0;
     for (let h = 0; h < i; h++) {
       const n = this.dirs[h],
