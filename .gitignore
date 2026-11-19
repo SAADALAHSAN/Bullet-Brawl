@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+*.png
+original/
+inspect_*.py
+find_*.py
+patch_*.py
+test_*.py
+fix_*.py
+scan_*.py
