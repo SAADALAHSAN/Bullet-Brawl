@@ -75468,21 +75468,21 @@ class i7 {
       this.puff(QQ, 0.32),
       I && this.decal(A, I));
   }
-  tuftBurst(A, I, C = 6) {
+  tuftBurst(A, I, C = 3) {
     for (let Q = 0; Q < C; Q++)
       (ri.set(
-        (this.rng() - 0.5) * 3,
-        1 + this.rng() * 2.2,
-        (this.rng() - 0.5) * 3,
+        (this.rng() - 0.5) * 1.2,
+        0.5 + this.rng() * 0.8,
+        (this.rng() - 0.5) * 1.2,
       ),
         this.tufts.spawn(
           A,
           ri,
           I[Q % I.length],
-          0.8 + this.rng() * 0.8,
-          0.6 + this.rng() * 0.4,
-          9,
-          1.5,
+          0.18 + this.rng() * 0.1,
+          0.25 + this.rng() * 0.1,
+          8,
+          1.8,
         ));
   }
   poof(A, I) {
@@ -75503,25 +75503,25 @@ class i7 {
           QQ,
           ri,
           C[Q % C.length],
-          0.9 + this.rng() * 0.8,
-          1.4 + this.rng() * 1.2,
+          0.4 + this.rng() * 0.3,
+          1.2 + this.rng() * 0.8,
           7,
           1.6,
         ));
     }
-    for (let Q = 0; Q < 22; Q++)
+    for (let Q = 0; Q < 16; Q++)
       (ri.set(
-        (this.rng() - 0.5) * 5,
-        2 + this.rng() * 4,
-        (this.rng() - 0.5) * 5,
+        (this.rng() - 0.5) * 4,
+        1.5 + this.rng() * 3,
+        (this.rng() - 0.5) * 4,
       ),
         QQ.copy(A).add(qB.set(0, 0.5 + this.rng() * 0.6, 0)),
         this.tufts.spawn(
           QQ,
           ri,
           Q % 3 === 0 ? I[0] : 16775920,
-          1.4 + this.rng() * 1.6,
-          0.9 + this.rng() * 0.6,
+          0.4 + this.rng() * 0.3,
+          0.7 + this.rng() * 0.4,
           8,
           1.8,
         ));
@@ -81022,12 +81022,17 @@ class lh {
   onLockChange = () => {
     if (this.touch) return;
     const A = !!(document.pointerLockElement && (document.pointerLockElement === this.renderer.domElement || document.pointerLockElement === document.body));
-    ((this.input.locked = A),
-      this.hud.setPrompt(!A && !this.cardOpen && !this.shopOpen));
+    this.input.locked = A;
+    if (!A && this.running && this.hasStarted && !this.paused && !this.shopOpen && !this.cardOpen) {
+      this.pause();
+    } else {
+      this.hud.setPrompt(!A && !this.cardOpen && !this.shopOpen && !this.paused);
+    }
   };
   resume() {
     if (
       ((this.paused = !1),
+      (this.hasStarted = !0),
       this.opts.onPause(!1),
       this.hud.setPrompt(!1),
       this.audio.unlock().then(() => this.applyVolumes()).catch(() => {}),
@@ -81092,6 +81097,7 @@ class lh {
       ((this.paused = !0),
       (this.touchActive = !1),
       this.touch?.setVisible(!1),
+      this.hud.setPrompt(!1),
       this.opts.onPause(!0));
   }
   applyVolumes() {
@@ -81230,6 +81236,10 @@ class lh {
   }
   onAction(A, I) {
     if ((A === "scoreboard" && this.hud.showScoreboard(I), !!I)) {
+      if (A === "menu") {
+        this.paused ? this.resume() : this.pause();
+        return;
+      }
       if (A === "emote") {
         this.toggleEmoteBar();
         return;
@@ -81679,7 +81689,7 @@ class lh {
     (this.vfx.dustRing(BQ.set(A.x, A.y - dg.centerY, A.z)), this.audio.spawn());
   }
   onHitFlash = (A) => {
-    this.vfx.tuftBurst(BQ.set(A.st.x, A.st.y + 0.9, A.st.z), A.colors, 6);
+    this.vfx.tuftBurst(BQ.set(A.st.x, A.st.y + 0.9, A.st.z), A.colors, 3);
   };
   frame = (A) => {
     if (
